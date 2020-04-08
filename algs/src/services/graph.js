@@ -52,6 +52,7 @@ module.exports = class Graph {
           backtrace[neighbor.node] = currentNode
           queue.enqueue([neighbor.node, wi])
         }
+        console.log(queue.collection)
       })
     }
 
@@ -61,7 +62,7 @@ module.exports = class Graph {
       path.unshift(backtrace[lastStep])
       lastStep = backtrace[lastStep]
     }
-    return { path: path, weight: times[endNode] }
+    return { path: path, weight: weights[endNode] }
   }
 
   depthSearch(startingNode) {

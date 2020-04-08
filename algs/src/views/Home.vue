@@ -4,30 +4,36 @@
       <div class="card mb-4 w-full">
         <h4 class="text-gray-700 text-2xl font-bold">Add node</h4>
         <form @submit.prevent="addNode" class="flex w-full flex-col mt-4">
-          <input v-model="node" type="text" placeholder="Node Name" class="mb-2">
-          <button type="button" @click="addNode" class="flex-grow">Add Node</button>
+          <input required v-model="node" type="text" placeholder="Node Name" class="mb-2">
+          <button type="submit" class="flex-grow">Add Node</button>
         </form>
       </div>
       <div class="card mb-4 col-span-12 sm:col-span-6 md:col-span-4">
         <h4 class="text-gray-700 text-2xl font-bold">Add edge</h4>
         <form @submit.prevent="addEdge" class="flex flex-col w-full mt-4">
-          <input v-model="conn.end1" type="text" placeholder="Node 1" class="mb-2">
-          <input v-model="conn.end2" type="text" placeholder="Node 2" class="mb-2">
-          <input v-model.number="conn.weight" type="text" placeholder="Weight" class="mb-2">
-          <button type="button" @click="addEdge" class="flex-grow">Add Edge</button>
+          <input required v-model="conn.end1" type="text" placeholder="Node 1" class="mb-2">
+          <input required v-model="conn.end2" type="text" placeholder="Node 2" class="mb-2">
+          <input required v-model.number="conn.weight" type="text" placeholder="Weight" class="mb-2">
+          <button type="submit" class="flex-grow">Add Edge</button>
         </form>
       </div>
       <div class="card mb-4 col-span-12 sm:col-span-6 md:col-span-4">
         <h4 class="text-gray-700 text-2xl font-bold">Dijkstra's</h4>
+        <div v-if="this.path" class="border border-gray-300 p-2 rounded">
+          <p>Path: <span v-for="p of path.path" :key="p">{{ p }}, </span></p>
+          <p>Weight: {{ path.weight }}</p>
+        </div>
         <form @submit.prevent="findPath" class="flex flex-col w-full mt-4">
-          <input v-model="start" type="text" placeholder="Start node" class="mb-2">
-          <input v-model="end" type="text" placeholder="End node" class="mb-2">
-          <button type="button" @click="findPath" class="flex-grow">Find path</button>
+          <input required v-model="start" type="text" placeholder="Start node" class="mb-2">
+          <input required v-model="end" type="text" placeholder="End node" class="mb-2">
+          <button type="submit" class="flex-grow">Find path</button>
+          <div class="w-full rounded bg-red-100 p-3 font-bold text-red-700 mt-2" v-if="dijkstraError">
+            {{ dijkstraError }}
+          </div>
         </form>
-        <div v-if="this.path">{{ path }}</div>
       </div>
       <div class="card mb-4 col-span-12 sm:col-span-6 md:col-span-4">
-        <h4 class="text-gray-700 text-2xl font-bold">Componente conexe</h4>
+        <h4 class="text-gray-700 text-2xl font-bold">Components (comp. conexe)</h4>
         <div v-if="components">
           <div v-for="c of components" :key="c[0]" class="p-2 border border-gray-300 rounded mb-2">
             <div v-for="node of c" :key="node">
@@ -35,9 +41,6 @@
             </div>
           </div>
         </div>
-        <form @submit.prevent="findComponents" class="flex flex-col w-full mt-4">
-          <button type="button" @click="findComponents" class="flex-grow">Compute</button>
-        </form>
       </div>
     </div>
     <div class="card mb-4 col-span-12 sm:col-span-6 md:col-span-8">
@@ -75,6 +78,7 @@ export default {
       start: null,
       end: null,
       path: null,
+      dijkstraError: ''
     }
   },
   mounted () {
@@ -104,6 +108,8 @@ export default {
     this.graph.addEdge("Primarie", "Prefectura", 2);
     this.graph.addEdge("Iulius Town", "Prefectura", 7);
     this.graph.addEdge("Iulius Town", "Primarie", 10);
+
+    this.findComponents()
   },
   methods: {
     addNode () {
@@ -114,6 +120,7 @@ export default {
     },
     addEdge () {
       this.graph.addEdge(this.conn.end1, this.conn.end2, this.conn.weight)
+      this.findComponents()
 
       this.conn = {
         end1: null,
@@ -122,13 +129,31 @@ export default {
       }
     },
     findPath() {
-      this.path = this.graph.findPathWithDijkstra(this.start, this.end)
-      console.log(this.path)
+      if(!this.graph.nodes.includes(this.start)) {
+        return this.dijkstraError = `Node <${this.start}> does not exist. Hint: It's case sensitive.`
+      }
+
+      if(!this.graph.nodes.includes(this.end)) {
+        return this.dijkstraError = `Node <${this.end}> does not exist. Hint: It's case sensitive.`
+      }
+
+      const currentComponent = this.components[this.graph.maxPaths[this.start]]
+      this.findComponents()
+
+      // check if start and end are in the same component
+      if(currentComponent.includes(this.start) &&
+        currentComponent.includes(this.end)) {
+          this.path = this.graph.findPathWithDijkstra(this.start, this.end)
+        }
+      else {
+        return this.dijkstraError = 'Start and end nodes are not in the same component.'
+      }
     },
     findComponents() {
       for(let node of this.graph.nodes) {
         this.graph.depthSearch(node)
       }
+      this.components = {}
 
       for(let node in this.graph.maxPaths) {
         console.log(node)
